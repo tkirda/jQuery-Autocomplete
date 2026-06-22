@@ -25,7 +25,7 @@ jobs:
       id-token: write   # OIDC token for npm provenance
       contents: write   # creating the GitHub Release
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
