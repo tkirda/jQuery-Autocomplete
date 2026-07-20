@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Node 24 ships npm 11.x natively, which has Trusted Publisher
           # OIDC publish support (landed in npm 11.5.1). Node 20 ships
