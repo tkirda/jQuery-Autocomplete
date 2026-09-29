@@ -83,6 +83,21 @@ A suggestion is an object of the form `{ value: string, data: any }`. `data`
 is passed through untouched to `formatResult`, `onSelect`, and the grouping
 key resolver.
 
+To match regardless of accents (so `cafe` finds `Café`), pass a custom
+`lookupFilter` that strips diacritics from both sides:
+
+```js
+const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+$('#autocomplete').devbridgeAutocomplete({
+    lookup: countries,
+    lookupFilter: (suggestion, query) => fold(suggestion.value).includes(fold(query)),
+});
+```
+
+The default `formatResult` still highlights only exact (case-insensitive)
+matches, so an accent-folded match is listed but not highlighted.
+
 ### Ajax-only settings
 
 | Setting | Default | Description |
@@ -211,6 +226,20 @@ Minimal CSS to get started:
 
 `cursor: pointer` on `.autocomplete-suggestion` is required for tap-to-select
 to fire on mobile Safari — see issue #542.
+
+To highlight matches with a different element, e.g. `<mark>`, wrap the
+default formatter. It escapes everything except its own `<strong>` tags, so
+swapping the tag is safe:
+
+```js
+$('#autocomplete').devbridgeAutocomplete({
+    lookup: countries,
+    formatResult: (suggestion, currentValue) =>
+        $.Autocomplete.defaults
+            .formatResult(suggestion, currentValue)
+            .replace(/<(\/?)strong>/g, '<$1mark>'),
+});
+```
 
 ## Response format
 
