@@ -18,7 +18,8 @@ export type WidthOption = number | "auto" | "flex";
 export type LookupFilter = (
     suggestion: Suggestion,
     originalQuery: string,
-    queryLowerCase: string
+    queryLowerCase: string,
+    options?: ResolvedOptions
 ) => boolean;
 
 // `response` is whatever `$.ajax` resolved with — its shape is defined by the
@@ -27,7 +28,12 @@ export type LookupFilter = (
 // consumer-annotated `(response: MyResponse) => ...` (parameter contravariance).
 export type TransformResult = (response: any, originalQuery: string) => AutocompleteResponse;
 
-export type FormatResult = (suggestion: Suggestion, currentValue: string, index?: number) => string;
+export type FormatResult = (
+    suggestion: Suggestion,
+    currentValue: string,
+    index?: number,
+    options?: ResolvedOptions
+) => string;
 
 export type FormatGroup = (suggestion: Suggestion, category: string) => string;
 
@@ -81,6 +87,7 @@ interface DefaultedOptions {
     triggerSelectOnValidInput: boolean;
     preventBadQueries: boolean;
     lookupFilter: LookupFilter;
+    ignoreDiacritics: boolean;
     paramName: string;
     transformResult: TransformResult;
     showNoSuggestionNotice: boolean;

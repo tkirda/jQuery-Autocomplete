@@ -39,26 +39,75 @@ var keys = {
 };
 
 // src/format.ts
-function lookupFilter(suggestion, _originalQuery, queryLowerCase) {
+function lookupFilter(suggestion, _originalQuery, queryLowerCase, options) {
+  if (options?.ignoreDiacritics) {
+    return foldText(suggestion.value).text.indexOf(foldText(queryLowerCase).text) !== -1;
+  }
   return suggestion.value.toLowerCase().indexOf(queryLowerCase) !== -1;
 }
 function transformResult(response) {
   return typeof response === "string" ? JSON.parse(response) : response;
 }
-function formatResult(suggestion, currentValue) {
+function formatResult(suggestion, currentValue, _index, options) {
   if (!currentValue) {
     const span = document.createElement("span");
     span.textContent = suggestion.value;
     return span.innerHTML;
   }
+  if (options?.ignoreDiacritics) {
+    return highlightFolded(suggestion.value, currentValue);
+  }
   const pattern = "(" + utils.escapeRegExChars(currentValue) + ")";
-  return suggestion.value.replace(new RegExp(pattern, "gi"), "<strong>$1</strong>").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/&lt;(\/?strong)&gt;/g, "<$1>");
+  return escapeHtml(
+    suggestion.value.replace(new RegExp(pattern, "gi"), "<strong>$1</strong>")
+  ).replace(/&lt;(\/?strong)&gt;/g, "<$1>");
 }
 function formatGroup(_suggestion, category) {
   const div = document.createElement("div");
   div.className = "autocomplete-group";
   div.textContent = category;
   return div.outerHTML;
+}
+function escapeHtml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function foldText(value) {
+  const folded = { text: "", starts: [], ends: [] };
+  let offset = 0;
+  for (const char of value) {
+    const end = offset + char.length;
+    const piece = char.normalize("NFD").replace(/\p{M}/gu, "").normalize("NFC").toLowerCase();
+    for (let k = folded.ends.length - 1; !piece && k >= 0 && folded.ends[k] === offset; k--) {
+      folded.ends[k] = end;
+    }
+    for (let i = 0; i < piece.length; i++) {
+      folded.starts.push(offset);
+      folded.ends.push(end);
+    }
+    folded.text += piece;
+    offset = end;
+  }
+  return folded;
+}
+function highlightFolded(value, currentValue) {
+  const query = foldText(currentValue).text;
+  if (!query) {
+    return escapeHtml(value);
+  }
+  const folded = foldText(value);
+  let html = "";
+  let last = 0;
+  let from = 0;
+  let hit;
+  while ((hit = folded.text.indexOf(query, from)) !== -1) {
+    const start = Math.max(folded.starts[hit], last);
+    const end = folded.ends[hit + query.length - 1];
+    html += escapeHtml(value.slice(last, start));
+    html += "<strong>" + escapeHtml(value.slice(start, end)) + "</strong>";
+    last = end;
+    from = hit + query.length;
+  }
+  return html + escapeHtml(value.slice(last));
 }
 
 // src/defaults.ts
@@ -88,6 +137,7 @@ var defaults = {
   triggerSelectOnValidInput: true,
   preventBadQueries: true,
   lookupFilter,
+  ignoreDiacritics: false,
   paramName: "query",
   transformResult,
   showNoSuggestionNotice: false,
@@ -387,7 +437,9 @@ var _Autocomplete = class _Autocomplete {
     const filter = options.lookupFilter;
     const limit = parseInt(options.lookupLimit, 10);
     const lookup = options.lookup;
-    const matched = lookup.filter((suggestion) => filter(suggestion, query, queryLowerCase));
+    const matched = lookup.filter(
+      (suggestion) => filter(suggestion, query, queryLowerCase, options)
+    );
     return {
       suggestions: limit && matched.length > limit ? matched.slice(0, limit) : matched
     };
@@ -510,7 +562,7 @@ var _Autocomplete = class _Autocomplete {
     };
     const html = this.suggestions.map((suggestion, i) => {
       const group = groupBy ? formatGroupFn(suggestion) : "";
-      return `${group}<div class="${className}" data-index="${i}">${formatResultFn(suggestion, value, i)}</div>`;
+      return `${group}<div class="${className}" data-index="${i}">${formatResultFn(suggestion, value, i, options)}</div>`;
     }).join("");
     this.adjustContainerWidth();
     this.$noSuggestionsContainer.detach();

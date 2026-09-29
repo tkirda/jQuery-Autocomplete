@@ -392,7 +392,9 @@ export class Autocomplete {
         const limit = parseInt(options.lookupLimit as string, 10);
 
         const lookup = options.lookup as Suggestion[];
-        const matched = lookup.filter((suggestion) => filter(suggestion, query, queryLowerCase));
+        const matched = lookup.filter((suggestion) =>
+            filter(suggestion, query, queryLowerCase, options)
+        );
 
         return {
             suggestions: limit && matched.length > limit ? matched.slice(0, limit) : matched,
@@ -543,7 +545,7 @@ export class Autocomplete {
         const html = this.suggestions
             .map((suggestion, i) => {
                 const group = groupBy ? formatGroupFn(suggestion) : "";
-                return `${group}<div class="${className}" data-index="${i}">${formatResultFn(suggestion, value, i)}</div>`;
+                return `${group}<div class="${className}" data-index="${i}">${formatResultFn(suggestion, value, i, options)}</div>`;
             })
             .join("");
 

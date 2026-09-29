@@ -31,6 +31,7 @@ export const defaults: ResolvedOptions = {
     triggerSelectOnValidInput: true,
     preventBadQueries: true,
     lookupFilter,
+    ignoreDiacritics: false,
     paramName: "query",
     transformResult,
     showNoSuggestionNotice: false,

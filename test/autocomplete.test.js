@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-import { formatGroup, formatResult } from "../src/format.ts";
+import { formatGroup, formatResult, lookupFilter } from "../src/format.ts";
 
 const $ = globalThis.jQuery;
 
@@ -459,6 +459,69 @@ describe("Autocomplete Async — empty originalQuery", () => {
 
         expect(instance.badQueries).not.toContain("");
         expect(ajaxCount).toBe(2);
+    });
+});
+
+describe("ignoreDiacritics", () => {
+    const on = { ignoreDiacritics: true };
+    const fmt = (value, query) => formatResult({ value, data: null }, query, 0, on);
+    const matches = (value, query) =>
+        lookupFilter({ value, data: null }, query, query.toLowerCase(), on);
+
+    it("is off by default: accented values don't match an unaccented query", () => {
+        expect(lookupFilter({ value: "Café", data: null }, "cafe", "cafe")).toBe(false);
+        expect(formatResult({ value: "Café", data: null }, "cafe")).toBe("Café");
+    });
+
+    it("filters regardless of accents in either the value or the query", () => {
+        expect(matches("Café au lait", "cafe")).toBe(true);
+        expect(matches("Cafe au lait", "CAFÉ")).toBe(true);
+        expect(matches("Crème brûlée", "brulee")).toBe(true);
+        expect(matches("Café", "tea")).toBe(false);
+    });
+
+    it("highlights the original accented characters", () => {
+        expect(fmt("Café au lait", "cafe")).toBe("<strong>Café</strong> au lait");
+        expect(fmt("Crème brûlée", "BRULEE")).toBe("Crème <strong>brûlée</strong>");
+    });
+
+    it("keeps decomposed combining marks inside the highlight", () => {
+        const decomposed = "Café noir";
+        expect(fmt(decomposed, "cafe")).toBe("<strong>Café</strong> noir");
+    });
+
+    it("highlights every occurrence", () => {
+        expect(fmt("Élan élan", "elan")).toBe("<strong>Élan</strong> <strong>élan</strong>");
+    });
+
+    it("leaves non-diacritic letters alone", () => {
+        expect(matches("Straße", "strasse")).toBe(false);
+        expect(fmt("Straße", "straße")).toBe("<strong>Straße</strong>");
+    });
+
+    it("escapes HTML around and inside the highlight", () => {
+        expect(fmt('<b>"Café"</b>', "cafe")).toBe(
+            "&lt;b&gt;&quot;<strong>Café</strong>&quot;&lt;/b&gt;"
+        );
+    });
+
+    it("escapes without highlighting when the query folds to nothing", () => {
+        expect(fmt("<i>Café</i>", "́")).toBe("&lt;i&gt;Café&lt;/i&gt;");
+    });
+
+    it("is applied end to end through the lookup option", () => {
+        const input = document.createElement("input");
+        const autocomplete = new $.Autocomplete(input, {
+            lookup: ["Café", "Tea"],
+            ignoreDiacritics: true,
+            triggerSelectOnValidInput: false,
+        });
+
+        input.value = "cafe";
+        autocomplete.onValueChange();
+
+        expect(autocomplete.suggestions.map((s) => s.value)).toEqual(["Café"]);
+        expect(autocomplete.suggestionsContainer.innerHTML).toContain("<strong>Café</strong>");
     });
 });
 

@@ -47,7 +47,8 @@ tables below.
 | `showNoSuggestionNotice` | `false` | If `true`, displays a label when no suggestions match |
 | `noSuggestionNotice` | `"No results"` | Text, HTML string, `Element`, or jQuery object used as the no-match label |
 | `groupBy` | optional | Property on `suggestion.data` to group results by |
-| `formatResult` | optional | `function (suggestion, currentValue)` — custom HTML for a single suggestion entry |
+| `formatResult` | optional | `function (suggestion, currentValue, index, options)` — custom HTML for a single suggestion entry. The default wraps matches in `<strong>` |
+| `ignoreDiacritics` | `false` | If `true`, the default `lookupFilter` and `formatResult` ignore accents, so `cafe` matches and highlights `Café`. Other letters (e.g. `ß`) are not folded. With Ajax lookups, which results match is still up to the server |
 | `formatGroup` | optional | `function (suggestion, category)` — custom HTML for a group header |
 | `beforeRender` | optional | `function (container, suggestions)` — called before the dropdown is shown; mutate the DOM here if needed |
 | `onInvalidateSelection` | optional | `function ()` — fires when the input changes after a selection was made. `this` is the input element |
@@ -76,7 +77,7 @@ tables below.
 | Setting | Default | Description |
 | :--- | :--- | :--- |
 | `lookup` | optional | Either an array of suggestions or a callback `function (query, done)`. Arrays may be strings or `{ value, data }` objects |
-| `lookupFilter` | optional | `function (suggestion, query, queryLowerCase)` — filter predicate. Default is a case-insensitive substring match |
+| `lookupFilter` | optional | `function (suggestion, query, queryLowerCase, options)` — filter predicate. Default is a case-insensitive substring match (accent-insensitive with `ignoreDiacritics`) |
 | `lookupLimit` | unlimited | Maximum number of local matches to display |
 
 A suggestion is an object of the form `{ value: string, data: any }`. `data`
@@ -211,6 +212,21 @@ Minimal CSS to get started:
 
 `cursor: pointer` on `.autocomplete-suggestion` is required for tap-to-select
 to fire on mobile Safari — see issue #542.
+
+To highlight matches with a different element, e.g. `<mark>`, wrap the
+default formatter. It escapes everything except its own `<strong>` tags, so
+the swap is safe; pass `index` and `options` through so `ignoreDiacritics`
+keeps working:
+
+```js
+$('#autocomplete').devbridgeAutocomplete({
+    lookup: countries,
+    formatResult: (suggestion, currentValue, index, options) =>
+        $.Autocomplete.defaults
+            .formatResult(suggestion, currentValue, index, options)
+            .replace(/<(\/?)strong>/g, '<$1mark>'),
+});
+```
 
 ## Response format
 
