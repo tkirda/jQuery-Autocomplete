@@ -95,7 +95,9 @@ export class Autocomplete {
         });
 
         container.on("click.autocomplete", suggestionSelector, function (this: HTMLElement) {
-            self.select($(this).data("index") as number);
+            if (!self.disabled) {
+                self.select($(this).data("index") as number);
+            }
         });
 
         container.on("mouseout.autocomplete", () => {

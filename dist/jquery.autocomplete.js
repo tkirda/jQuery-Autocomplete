@@ -149,7 +149,9 @@
         self.activate($2(this).data("index"));
       });
       container.on("click.autocomplete", suggestionSelector, function() {
-        self.select($2(this).data("index"));
+        if (!self.disabled) {
+          self.select($2(this).data("index"));
+        }
       });
       container.on("mouseout.autocomplete", () => {
         this.selectedIndex = -1;
