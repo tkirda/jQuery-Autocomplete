@@ -141,7 +141,9 @@ var _Autocomplete = class _Autocomplete {
       self.activate($(this).data("index"));
     });
     container.on("click.autocomplete", suggestionSelector, function() {
-      self.select($(this).data("index"));
+      if (!self.disabled) {
+        self.select($(this).data("index"));
+      }
     });
     container.on("mouseout.autocomplete", () => {
       this.selectedIndex = -1;
