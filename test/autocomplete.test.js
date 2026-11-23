@@ -1032,3 +1032,32 @@ describe("When options.preserveInput is true", () => {
         expect(input.val()).toEqual("J");
     });
 });
+
+describe("Disabled autocomplete", () => {
+    it("ignores a suggestion click after the open autocomplete is disabled", () => {
+        const input = document.createElement("input");
+        const onSelect = vi.fn();
+        document.body.append(input);
+        const autocomplete = new $.Autocomplete(input, { lookup: ["Alpha", "Alpine"], onSelect });
+
+        try {
+            input.value = "Al";
+            autocomplete.onValueChange();
+            const suggestion = $(".autocomplete-suggestion").last();
+            expect(suggestion.text()).toBe("Alpine");
+
+            autocomplete.disable();
+            suggestion.trigger("click");
+            expect(input.value).toBe("Al");
+            expect(onSelect).not.toHaveBeenCalled();
+
+            autocomplete.enable();
+            suggestion.trigger("click");
+            expect(input.value).toBe("Alpine");
+            expect(onSelect).toHaveBeenCalledOnce();
+        } finally {
+            autocomplete.dispose();
+            input.remove();
+        }
+    });
+});
